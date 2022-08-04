@@ -50,8 +50,9 @@
 # NOASM = 1
 
 # OPTIMIZE = 3
+# OPTIMIZE = 0
 # SYMBOLS = 1
-# SYMLEVEL = 2
+# SYMLEVEL = 3
 # MAP = 1
 # PROFILE = 1
 # ARCHOPTS =
@@ -1505,7 +1506,7 @@ clean: genieclean
 	-$(SILENT)rm -rf $(BUILDDIR)
 	-$(SILENT)rm -rf 3rdparty/bgfx/.build
 
-GEN_FOLDERS := $(GENDIR)/$(TARGET)/layout/ $(GENDIR)/$(TARGET)/$(SUBTARGET_FULL)/ $(GENDIR)/mame/drivers/ $(GENDIR)/mame/machine/
+GEN_FOLDERS := $(GENDIR)/$(TARGET)/layout/ $(GENDIR)/$(TARGET)/$(SUBTARGET_FULL)/ $(GENDIR)/mame/drivers/ $(GENDIR)/mame/machine/ $(GENDIR)/mame/ping/
 
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
 LAYOUTS=$(wildcard $(SRC)/$(TARGET)/layout/*.lay)
@@ -1711,6 +1712,8 @@ shaders: bgfx-tools
 
 $(GENDIR)/mame.pot: FORCE
 	$(SILENT) echo Generating mame.pot
+	$(SILENT) find src/ping "(" -name "*.cpp" -o -name "*.ipp" ")" -print0 | xargs -0 \
+		xgettext -o $@ --from-code=UTF-8 --language=C++ -k_:1,1t -k_:1c,2,2t -kN_ -kN_p:1c,2 -j
 	$(SILENT) find src/frontend "(" -name "*.cpp" -o -name "*.ipp" ")" -print0 | xargs -0 \
 		xgettext -o $@ --from-code=UTF-8 --language=C++ -k_:1,1t -k_:1c,2,2t -kN_ -kN_p:1c,2
 	$(SILENT) find src/devices "(" -name "*.cpp" -o -name "*.ipp" ")" -print0 | xargs -0 \

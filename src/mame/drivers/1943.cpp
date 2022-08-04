@@ -47,6 +47,43 @@
 #include "machine/watchdog.h"
 #include "sound/ymopn.h"
 #include "speaker.h"
+#include <iostream>
+#include <iomanip>
+
+#ifndef EM_PORT_API
+#	if defined(__EMSCRIPTEN__)
+#		include <emscripten.h>
+#		if defined(__cplusplus)
+#			define EM_PORT_API(rettype) extern "C" rettype EMSCRIPTEN_KEEPALIVE
+#		else
+#			define EM_PORT_API(rettype) rettype EMSCRIPTEN_KEEPALIVE
+#		endif
+#	else
+#		if defined(__cplusplus)
+#			define EM_PORT_API(rettype) extern "C" rettype
+#		else
+#			define EM_PORT_API(rettype) rettype
+#		endif
+#	endif
+#endif
+
+static _1943_state *s_device;
+
+EM_PORT_API(void) coin() {
+
+	ioport_port *port = s_device->ioport("SYSTEM");
+	port->live().digital = 0x40;
+	port->live().manual_digital = true;
+	port->live().manual_digital_count = 4;
+}
+
+EM_PORT_API(void) start_game() {
+
+	ioport_port *port = s_device->ioport("SYSTEM");
+	port->live().digital = 0x01;
+	port->live().manual_digital = true;
+	port->live().manual_digital_count = 4;
+}
 
 
 /* Protection Handlers */
@@ -68,6 +105,48 @@ void _1943_state::mcu_p3_w(u8 data)
 	m_mcu_p3 = data;
 }
 
+void _1943_state::driver_start() 
+{
+	s_device = this;
+	ioport_port *port = ioport("SYSTEM");
+	port->live().digital = 0;
+	port->live().manual_digital = true;
+	std::cout << "driver_start" << std::endl;
+}
+
+void _1943_state::driver_reset()
+{
+	std::cout << "driver_reset" << std::endl;
+}
+
+template <int Coin>
+CUSTOM_INPUT_MEMBER(_1943_state::coin_counter_r)
+{
+	/* return coin counter values */
+	// return m_coin_counter[Coin] & 3;
+	return 3;
+}
+
+INPUT_CHANGED_MEMBER(_1943_state::coin_start_callback)
+{
+	if (!oldval && newval)
+	{
+		// int coin = param;
+		std::cout << "coin_start_callback" << std::endl;
+	}
+}
+
+INPUT_CHANGED_MEMBER(_1943_state::coin_changed_callback)
+{
+	if (!oldval && newval)
+	{
+		// int coin = param;
+		std::cout << "coin_changed_callback" << std::endl;
+	}
+	// /* check for a 0 -> 1 transition */
+	// if (!oldval && newval && m_coin_counter[coin] < 3)
+	// 	m_coin_counter[coin] += 1;
+}
 
 /* Memory Maps */
 
@@ -123,12 +202,12 @@ void _1943_state::sound_map(address_map &map)
 
 static INPUT_PORTS_START( 1943 )
 	PORT_START("SYSTEM")
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 )
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_START1 ) PORT_CHANGED_MEMBER(DEVICE_SELF, _1943_state,coin_start_callback, 0)
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_CUSTOM )    // VBLANK
-	PORT_BIT( 0x30, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x30, IP_ACTIVE_LOW, IPT_UNUSED )  PORT_CUSTOM_MEMBER(_1943_state, coin_counter_r<0>)
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN1 )  PORT_CHANGED_MEMBER(DEVICE_SELF, _1943_state,coin_changed_callback, 0)
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN2 )
 
 	PORT_START("P1")
@@ -262,6 +341,9 @@ void _1943_state::machine_start()
 	save_item(NAME(m_mcu_p0));
 	save_item(NAME(m_mcu_p2));
 	save_item(NAME(m_mcu_p3));
+
+	chiscore_memory mems[] = {{0xe600, 0x60}, {0xe110, 8}, {0xd1be, 1}, {0xd1de, 1}, {0xd1fe, 1}, {0xd21e, 1}, {0xd23e, 1}, {0xd25e, 1}, {0xd27e, 1}};
+	m_hi.init(this, m_maincpu, mems, sizeof(mems) / sizeof(chiscore_memory));
 }
 
 void _1943_state::machine_reset()

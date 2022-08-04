@@ -14,6 +14,7 @@
 #include "emupal.h"
 #include "screen.h"
 #include "tilemap.h"
+#include "ping/chiscore.h"
 
 class _1943_state : public driver_device
 {
@@ -40,8 +41,14 @@ public:
 	void _1943b(machine_config &config);
 
 	void init_1943();
+	template <int Coin> DECLARE_CUSTOM_INPUT_MEMBER(coin_counter_r);
+	DECLARE_INPUT_CHANGED_MEMBER(coin_changed_callback);
+	DECLARE_INPUT_CHANGED_MEMBER(coin_start_callback);
 
 private:
+	virtual void driver_start() override;
+	virtual void driver_reset() override;
+
 	/* devices / memory pointers */
 	required_device<cpu_device> m_maincpu;
 	optional_device<i8751_device> m_mcu;
@@ -57,6 +64,7 @@ private:
 	required_region_ptr<u8> m_tilerom;
 	required_region_ptr<u8> m_proms;
 	required_memory_bank m_mainbank;
+	chiscore m_hi;
 
 	/* video-related */
 	tilemap_t *m_fg_tilemap = nullptr;

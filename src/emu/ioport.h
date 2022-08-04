@@ -1248,6 +1248,8 @@ struct ioport_port_live
 	ioport_value            defvalue;           // combined default value across the port
 	ioport_value            digital;            // current value from all digital inputs
 	ioport_value            outputvalue;        // current value for outputs
+	bool manual_digital;                        // 是否接管按键控制
+	int manual_digital_count;                   // 按键延迟, 需要高压电平的切换和间隔时间
 };
 
 

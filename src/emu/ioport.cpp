@@ -1808,7 +1808,9 @@ void ioport_port::update_defvalue(bool flush_defaults)
 ioport_port_live::ioport_port_live(ioport_port &port)
 	: defvalue(0),
 		digital(0),
-		outputvalue(0)
+		outputvalue(0),
+		manual_digital(false),
+		manual_digital_count(0)
 {
 	// iterate over fields
 	for (ioport_field &field : port.fields())
@@ -2220,7 +2222,15 @@ void ioport_manager::frame_update()
 	// loop over all input ports
 	for (auto &port : m_portlist)
 	{
-		port.second->frame_update();
+		if (!port.second->live().manual_digital) {
+			port.second->frame_update();
+		}else {
+			port.second->live().manual_digital_count--;
+			if (port.second->live().manual_digital_count < 0) {
+				port.second->live().digital = 0;
+				port.second->live().manual_digital_count = 0;
+			}
+		}
 
 		// handle playback/record
 		playback_port(*port.second.get());
